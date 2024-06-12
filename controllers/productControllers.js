@@ -1,5 +1,6 @@
 import asyncHandler from 'express-async-handler';
 import Product from '../model/Product.model.js';
+import Category from '../model/Category.model.js';
 
 // 1
 // @desc CREATE NEW PRODUCT
@@ -9,12 +10,23 @@ import Product from '../model/Product.model.js';
 export const createProductCtrl = asyncHandler(async (req, res) => {
   const { name, description, category, sizes, colors, price, totalQty, brand } =
     req.body;
-  console.log(req);
+
   // product exists
   const productExists = await Product.findOne({ name });
   if (productExists) {
     throw new Error('Product Already exists');
   }
+  // find the category
+  const categoryFound = await Category.findOne({ name: category });
+  // got the category like men women
+  // console.log(categoryFound);
+  // category found get the category
+  if (!categoryFound) {
+    throw new Error(
+      'Category not found, please create category first or check category name'
+    );
+  }
+
   //   create the product
   const product = await Product.create({
     name,
@@ -27,6 +39,18 @@ export const createProductCtrl = asyncHandler(async (req, res) => {
     totalQty,
     brand,
   });
+  categoryFound.products.push(product._id);
+  console.log(
+    'CATEGORY FOUND',
+    categoryFound,
+    'CATEGORYFOIUND.PRODUCTS',
+    categoryFound.products,
+    'PRODUCT._ID',
+    product._id
+  );
+  await categoryFound.save();
+  // categoryfound is the category of that specific and we push the products in that specif category
+  // id by mongodb
   //   push the product into category
   //   send response
   res.json({

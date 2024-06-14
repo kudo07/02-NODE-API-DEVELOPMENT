@@ -8,13 +8,14 @@ import Brand from '../model/Brand.model.js';
 export const createBrandCtrl = asyncHandler(async (req, res) => {
   const { name } = req.body;
   // brand exist
-  const brandFound = await Brand.find({ name });
+  const brandFound = await Brand.findOne({ name });
+  console.log(brandFound);
   if (brandFound) {
     throw new Error('Brand already exists');
   }
   //   create
   const brand = await Brand.create({
-    name: name?.toLowerCase(),
+    name: name.toLowerCase(),
     user: req.userAuthId,
   });
   res.json({

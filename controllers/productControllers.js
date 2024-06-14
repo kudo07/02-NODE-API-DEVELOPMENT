@@ -1,6 +1,7 @@
 import asyncHandler from 'express-async-handler';
 import Product from '../model/Product.model.js';
 import Category from '../model/Category.model.js';
+import Brand from '../model/Brand.model.js';
 
 // 1
 // @desc CREATE NEW PRODUCT
@@ -16,6 +17,14 @@ export const createProductCtrl = asyncHandler(async (req, res) => {
   if (productExists) {
     throw new Error('Product Already exists');
   }
+  // find the brand
+  const brandFound = await Brand.findOne({ name: brand });
+  if (!brandFound) {
+    throw new Error(
+      'brand not found, please create brand first or check brand name'
+    );
+  }
+  console.log('BRAND FOUND', brandFound);
   // find the category
   const categoryFound = await Category.findOne({ name: category });
   // got the category like men women
@@ -39,20 +48,26 @@ export const createProductCtrl = asyncHandler(async (req, res) => {
     totalQty,
     brand,
   });
+  //push the product into cateogry
   categoryFound.products.push(product._id);
-  console.log(
-    'CATEGORY FOUND',
-    categoryFound,
-    'CATEGORYFOIUND.PRODUCTS',
-    categoryFound.products,
-    'PRODUCT._ID',
-    product._id
-  );
+  // console.log(
+  //   'CATEGORY FOUND',
+  //   categoryFound,
+  //   'CATEGORYFOIUND.PRODUCTS',
+  //   categoryFound.products,
+  //   'PRODUCT._ID',
+  //   product._id
+  // );
+  // resave
   await categoryFound.save();
   // categoryfound is the category of that specific and we push the products in that specif category
   // id by mongodb
   //   push the product into category
   //   send response
+  // push the product into brand
+  brandFound.products.push(product._id);
+  // resave
+  await brandFound.save();
   res.json({
     status: 'success',
     message: 'Product created successfully',
@@ -131,7 +146,6 @@ export const getProductsCntrl = asyncHandler(async (req, res) => {
   const total = await Product.countDocuments();
   //
   productQuery = productQuery.skip(startIndex).limit(limit);
-  const products = await productQuery;
   // pagination result
   const pagination = {};
   if (lastIndex < total) {
@@ -146,6 +160,9 @@ export const getProductsCntrl = asyncHandler(async (req, res) => {
       limit,
     };
   }
+  // await the query
+  const products = await productQuery.populate('reviews');
+  // ensure this property is there in the product.model.js
   res.json({
     status: 'success',
     total,
@@ -161,7 +178,7 @@ export const getProductsCntrl = asyncHandler(async (req, res) => {
 // @route   GET /api/v1/products
 // @access  Public
 export const getProductCntrl = asyncHandler(async (req, res) => {
-  const product = await Product.findById(req.params.id);
+  const product = await Product.findById(req.params.id).populate();
   if (!product) {
     throw new Error('Product Not Found');
   }
